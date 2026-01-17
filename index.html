@@ -3,66 +3,76 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kindred-Code | Social Impact Platform</title>
+    <title>Kindred-Code | Social Impact</title>
+    
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
+
     <style>
-        :root { --primary: #2ecc71; --secondary: #3498db; --dark: #2c3e50; --light: #f4f7f6; }
-        body { font-family: -apple-system, sans-serif; background: var(--light); margin: 0; padding: 0; }
+        :root { --primary: #2ecc71; --secondary: #3498db; --dark: #2c3e50; --light: #f4f7f6; --error: #e74c3c; }
+        body { font-family: -apple-system, sans-serif; background: var(--light); margin: 0; padding: 0; color: var(--dark); }
         
-        /* Login Screen */
+        /* Auth Screen */
         #login-screen {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: var(--dark); display: flex; align-items: center; justify-content: center;
             z-index: 1000;
         }
-        .login-box { background: white; padding: 40px; border-radius: 15px; width: 90%; max-width: 400px; text-align: center; }
+        .login-box { background: white; padding: 40px; border-radius: 20px; width: 90%; max-width: 380px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
         
         /* App Layout */
         .container { max-width: 600px; margin: auto; padding: 20px; }
-        header { display: flex; justify-content: space-between; align-items: center; padding: 20px 0; }
+        header { display: flex; justify-content: space-between; align-items: center; padding: 20px 0; border-bottom: 1px solid #ddd; margin-bottom: 20px;}
         
-        /* Challenge Cards */
+        /* Cards */
         .card { background: white; padding: 25px; border-radius: 15px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
         .progress-bar { background: #eee; height: 10px; border-radius: 5px; margin: 15px 0; overflow: hidden; }
-        .progress-fill { background: var(--primary); height: 100%; width: 0%; transition: width 1s ease-in-out; }
+        .progress-fill { background: var(--primary); height: 100%; width: 0%; transition: width 1s ease; }
         
         /* Inputs & Buttons */
-        input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
-        .btn { background: var(--primary); color: white; border: none; padding: 14px; width: 100%; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 1rem; }
-        .btn-outline { background: transparent; border: 1px solid var(--secondary); color: var(--secondary); padding: 8px 15px; border-radius: 5px; cursor: pointer; }
+        input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 1rem; }
+        .btn { background: var(--primary); color: white; border: none; padding: 14px; width: 100%; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 1rem; margin-top: 10px; }
+        .btn-secondary { background: var(--secondary); }
+        .btn-outline { background: transparent; border: 1px solid #ccc; color: #7f8c8d; padding: 10px; width: 100%; border-radius: 8px; cursor: pointer; margin-top: 10px; }
+        .logout-btn { background: transparent; border: 1px solid var(--error); color: var(--error); padding: 5px 12px; border-radius: 5px; cursor: pointer; font-size: 0.8rem; }
+        
         .hidden { display: none; }
+        #debug-log { font-size: 0.7rem; color: var(--error); margin-top: 15px; text-align: left; background: #fff0f0; padding: 5px; border-radius: 4px; display: none; }
     </style>
 </head>
 <body>
 
     <div id="login-screen">
         <div class="login-box">
-            <h2 id="auth-title">Welcome to Kindred</h2>
+            <h1>🤝 Kindred</h1>
+            <p style="color: #7f8c8d; margin-bottom: 20px;">Bridge the gap to impact.</p>
+            
             <input type="email" id="email" placeholder="Email Address">
-            <input type="password" id="pass" placeholder="Password">
-            <button class="btn" onclick="handleAuth()" id="auth-btn">Login / Sign Up</button>
-            <p style="font-size: 0.8rem; color: #7f8c8d; margin-top: 15px;">New users will be automatically registered.</p>
+            <input type="password" id="pass" placeholder="Password (min 6 chars)">
+            
+            <button class="btn" onclick="login()">Login</button>
+            <button class="btn btn-secondary" onclick="signup()">Create New Account</button>
+            
+            <div id="debug-log"></div>
         </div>
     </div>
 
     <div class="container">
         <header>
-            <h1>🤝 Kindred</h1>
-            <button class="btn-outline" onclick="logout()">Logout</button>
+            <h2 style="margin:0;">Kindred-Code</h2>
+            <button class="logout-btn" onclick="logout()">Logout</button>
         </header>
         
-        <p id="user-welcome">Loading your impact...</p>
-        <hr style="border: 0; height: 1px; background: #ddd; margin: 20px 0;">
+        <p id="user-welcome">Verifying session...</p>
 
         <div id="challenge-list">
-            <p style="text-align: center; color: #95a5a6;">Checking for active challenges...</p>
+            <p style="text-align: center; color: #95a5a6; padding-top: 50px;">Looking for challenges...</p>
         </div>
     </div>
 
     <script>
-        // 1. YOUR FIREBASE CONFIG
+        // 1. FIREBASE CONFIGURATION
         const firebaseConfig = {
             apiKey: "AIzaSyC0cOFSLJBYYXmb4HQa71lWfbrb9XkKoJw",
             authDomain: "kindred-code.firebaseapp.com",
@@ -72,55 +82,73 @@
             appId: "1:1056220357040:web:1b84ea983970f95e1f3675"
         };
 
-        // Initialize Firebase
+        // Initialize
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
 
-        // 2. AUTHENTICATION LOGIC
-        async function handleAuth() {
+        // 2. AUTH FUNCTIONS
+        async function login() {
             const email = document.getElementById('email').value;
             const pass = document.getElementById('pass').value;
-            
-            if (!email || !pass) return alert("Please fill in all fields.");
-
+            showDebug(""); // Clear logs
             try {
-                // Try logging in
                 await auth.signInWithEmailAndPassword(email, pass);
             } catch (error) {
-                // If user doesn't exist, try signing up
-                if (error.code === 'auth/user-not-found') {
-                    await auth.createUserWithEmailAndPassword(email, pass);
-                } else {
-                    alert(error.message);
-                }
+                showDebug("Login Error: " + error.message);
+            }
+        }
+
+        async function signup() {
+            const email = document.getElementById('email').value;
+            const pass = document.getElementById('pass').value;
+            showDebug(""); // Clear logs
+            try {
+                await auth.createUserWithEmailAndPassword(email, pass);
+                alert("Account created successfully!");
+            } catch (error) {
+                showDebug("Signup Error: " + error.message);
             }
         }
 
         function logout() {
-            auth.signOut();
-            window.location.reload();
+            auth.signOut().then(() => window.location.reload());
         }
 
-        // 3. APP LOGIC (Only runs when logged in)
+        function showDebug(msg) {
+            const log = document.getElementById('debug-log');
+            if(msg) {
+                log.innerText = msg;
+                log.style.display = 'block';
+            } else {
+                log.style.display = 'none';
+            }
+        }
+
+        // 3. OBSERVE AUTH STATE
         auth.onAuthStateChanged(user => {
+            const screen = document.getElementById('login-screen');
             if (user) {
-                document.getElementById('login-screen').classList.add('hidden');
-                document.getElementById('user-welcome').innerText = `Active Challenges for: ${user.email}`;
+                screen.classList.add('hidden');
+                document.getElementById('user-welcome').innerText = `Welcome, ${user.email}`;
                 loadChallenges();
             } else {
-                document.getElementById('login-screen').classList.remove('hidden');
+                screen.classList.remove('hidden');
             }
         });
 
-        // 4. LOAD DATA FROM FIRESTORE
+        // 4. DATABASE FUNCTIONS
         async function loadChallenges() {
             const list = document.getElementById('challenge-list');
             
-            // Listen for real-time updates from your 'challenges' collection
+            // This listens for changes in your Firestore 'challenges' collection
             db.collection('challenges').onSnapshot((snapshot) => {
                 if (snapshot.empty) {
-                    list.innerHTML = `<p style="text-align:center;">No challenges found. Add some in your Firebase Console!</p>`;
+                    list.innerHTML = `
+                        <div style="text-align:center; padding: 40px; color: #7f8c8d;">
+                            <p>No active challenges found.</p>
+                            <small>Go to Firestore -> Create collection 'challenges'</small>
+                        </div>`;
                     return;
                 }
 
@@ -131,39 +159,44 @@
                     
                     list.innerHTML += `
                         <div class="card">
-                            <small style="color:var(--secondary); font-weight:bold; text-transform:uppercase;">${data.type || 'Challenge'}</small>
+                            <small style="color:var(--secondary); font-weight:bold;">${data.type || 'GENERAL'}</small>
                             <h2 style="margin: 10px 0;">${data.title}</h2>
-                            <p>Company: <strong>${data.company}</strong></p>
+                            <p>Sponsored by: <strong>${data.company}</strong></p>
                             
                             <div class="progress-bar">
                                 <div class="progress-fill" style="width: ${percent}%"></div>
                             </div>
                             
                             <div style="display:flex; justify-content:space-between; font-size:0.85rem; color:#7f8c8d;">
-                                <span>${data.current} / ${data.goal} Actions</span>
-                                <span>Donation: ${data.reward || '$0'}</span>
+                                <span>${data.current} / ${data.goal} verified</span>
+                                <span>Reward: ${data.reward}</span>
                             </div>
 
-                            <button class="btn" style="margin-top:20px; background:var(--dark);" onclick="submitProof('${doc.id}', ${data.current})">
-                                Submit Verification
+                            <button class="btn" style="margin-top:20px; background:var(--dark);" onclick="verifyAction('${doc.id}', ${data.current})">
+                                Verify My Action
                             </button>
                         </div>
                     `;
                 });
+            }, (error) => {
+                console.error("Database Error:", error);
+                list.innerHTML = `<p style="color:red">Permission denied. Check Firestore Rules.</p>`;
             });
         }
 
-        // 5. SUBMIT PROOF (Updates the database)
-        function submitProof(docId, currentVal) {
+        async function verifyAction(docId, currentVal) {
             if ("geolocation" in navigator) {
                 navigator.geolocation.getCurrentPosition(async (position) => {
-                    // Update the challenge count in Firestore
-                    await db.collection('challenges').doc(docId).update({
-                        current: currentVal + 1
-                    });
-                    alert("Location Verified! Thank you for your impact.");
+                    try {
+                        await db.collection('challenges').doc(docId).update({
+                            current: currentVal + 1
+                        });
+                        alert("GPS Verified! Your contribution was recorded.");
+                    } catch (e) {
+                        alert("Database error: " + e.message);
+                    }
                 }, () => {
-                    alert("GPS access denied. We need location to verify your action.");
+                    alert("GPS access denied. Verification failed.");
                 });
             }
         }
