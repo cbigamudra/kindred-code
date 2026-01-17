@@ -24,7 +24,7 @@ Next on the list:
 - [ ] A "User Profile" to see how much money you've helped raise.
 - [ ] An "Admin" view so companies can add their own tasks without me doing it manually.
 
-## 🚀Want to try it?
+## Want to try it?
 If you want to poke around the code or run it yourself:
 1. Clone it to your machine.
 2. You'll need your own Firebase project keys (I've kept mine in the file for now so the demo works, but you should swap them out for yours!).
