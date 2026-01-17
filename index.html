@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kindred-Code | Action for Impact</title>
+    <style>
+        /* Modern Design System */
+        :root {
+            --primary: #2ecc71;
+            --secondary: #3498db;
+            --dark: #2c3e50;
+            --light: #ecf0f1;
+        }
+
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+            background-color: #f0f2f5; 
+            color: var(--dark);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container { max-width: 500px; width: 100%; }
+
+        header { text-align: center; padding: 40px 0; }
+        header h1 { margin: 0; font-size: 2.5rem; color: var(--dark); }
+        header p { color: #7f8c8d; font-size: 1.1rem; }
+
+        /* Challenge Card */
+        .card { 
+            background: white; 
+            padding: 30px; 
+            border-radius: 20px; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            border: 1px solid rgba(0,0,0,0.05);
+        }
+
+        .badge { 
+            background: #e8f8f5; 
+            color: var(--primary); 
+            padding: 6px 12px; 
+            border-radius: 50px; 
+            font-size: 0.75rem; 
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        h2 { margin: 15px 0 10px 0; font-size: 1.5rem; }
+        .company { color: var(--secondary); font-weight: 600; }
+
+        /* Progress Section */
+        .progress-container { margin: 25px 0; }
+        .progress-bar { 
+            background: #eee; 
+            height: 12px; 
+            border-radius: 10px; 
+            overflow: hidden; 
+            margin-bottom: 10px;
+        }
+        .progress-fill { 
+            background: linear-gradient(90deg, var(--primary), #27ae60); 
+            height: 100%; 
+            width: 24%; /* Starting progress */
+            transition: width 1.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+        }
+
+        .stats-text { 
+            display: flex; 
+            justify-content: space-between; 
+            font-size: 0.9rem; 
+            color: #95a5a6; 
+        }
+
+        /* Interaction */
+        .btn { 
+            background: var(--dark); 
+            color: white; 
+            border: none; 
+            padding: 16px; 
+            border-radius: 12px; 
+            cursor: pointer; 
+            width: 100%; 
+            font-size: 1rem; 
+            font-weight: 700;
+            transition: transform 0.2s, background 0.2s;
+        }
+
+        .btn:hover { background: #000; transform: translateY(-2px); }
+        .btn:active { transform: translateY(0); }
+
+        #status-msg {
+            margin-top: 15px;
+            font-size: 0.85rem;
+            text-align: center;
+            min-height: 20px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>🤝 Kindred-Code</h1>
+        <p>Proof of Action. Proof of Impact.</p>
+    </header>
+
+    <div class="card">
+        <span class="badge">Environmental</span>
+        <h2>The "Clean Sweep" Challenge</h2>
+        <p>Complete this task and <span class="company">EcoCorp</span> will donate <strong>$500</strong> to environmental restoration.</p>
+        
+        <div class="progress-container">
+            <div class="progress-bar">
+                <div id="fill" class="progress-fill"></div>
+            </div>
+            <div class="stats-text">
+                <span id="count">12 / 50 Completed</span>
+                <span>Goal: $500</span>
+            </div>
+        </div>
+
+        <button class="btn" onclick="handleAction()">Submit Verification</button>
+        <p id="status-msg"></p>
+    </div>
+</div>
+
+<script>
+    function handleAction() {
+        const status = document.getElementById('status-msg');
+        const fill = document.getElementById('fill');
+        const count = document.getElementById('count');
+
+        status.style.color = "#3498db";
+        status.innerText = "🛰️ Accessing GPS for verification...";
+
+        if ("geolocation" in navigator) {
+            navigator.geolocation.getCurrentPosition((position) => {
+                // Success!
+                const lat = position.coords.latitude.toFixed(4);
+                const lon = position.coords.longitude.toFixed(4);
+                
+                status.style.color = "#2ecc71";
+                status.innerText = `✅ Verified! Location: ${lat}, ${lon}`;
+                
+                // Animate the progress bar and text for the demo
+                setTimeout(() => {
+                    fill.style.width = "26%";
+                    count.innerText = "13 / 50 Completed";
+                    alert("Verification Complete! Your action has been recorded.");
+                }, 500);
+
+            }, (error) => {
+                // Error (User denied GPS)
+                status.style.color = "#e74c3c";
+                status.innerText = "❌ Verification failed. GPS access required.";
+                alert("Kindred-Code requires location to verify you are at the challenge site.");
+            });
+        } else {
+            status.innerText = "Browser does not support Geolocation.";
+        }
+    }
+</script>
+
+</body>
+</html>
