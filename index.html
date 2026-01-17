@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kindred-Code | Social Impact</title>
+    <title>Kindred-Code | Impact Dashboard</title>
     
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
@@ -11,34 +11,33 @@
 
     <style>
         :root { --primary: #2ecc71; --secondary: #3498db; --dark: #2c3e50; --light: #f4f7f6; --error: #e74c3c; }
-        body { font-family: -apple-system, sans-serif; background: var(--light); margin: 0; padding: 0; color: var(--dark); }
+        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: var(--light); margin: 0; padding: 0; color: var(--dark); }
         
         /* Auth Screen */
         #login-screen {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: var(--dark); display: flex; align-items: center; justify-content: center;
-            z-index: 1000;
+            z-index: 9999; /* Ensures it sits on top */
         }
-        .login-box { background: white; padding: 40px; border-radius: 20px; width: 90%; max-width: 380px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+        .login-box { background: white; padding: 40px; border-radius: 20px; width: 90%; max-width: 380px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
         
-        /* App Layout */
+        /* Layout */
         .container { max-width: 600px; margin: auto; padding: 20px; }
-        header { display: flex; justify-content: space-between; align-items: center; padding: 20px 0; border-bottom: 1px solid #ddd; margin-bottom: 20px;}
+        header { display: flex; justify-content: space-between; align-items: center; padding: 20px 0; border-bottom: 1px solid #ddd; margin-bottom: 20px; }
         
-        /* Cards */
+        /* Challenge Cards */
         .card { background: white; padding: 25px; border-radius: 15px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
         .progress-bar { background: #eee; height: 10px; border-radius: 5px; margin: 15px 0; overflow: hidden; }
         .progress-fill { background: var(--primary); height: 100%; width: 0%; transition: width 1s ease; }
         
-        /* Inputs & Buttons */
+        /* Form Elements */
         input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 1rem; }
         .btn { background: var(--primary); color: white; border: none; padding: 14px; width: 100%; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 1rem; margin-top: 10px; }
         .btn-secondary { background: var(--secondary); }
-        .btn-outline { background: transparent; border: 1px solid #ccc; color: #7f8c8d; padding: 10px; width: 100%; border-radius: 8px; cursor: pointer; margin-top: 10px; }
-        .logout-btn { background: transparent; border: 1px solid var(--error); color: var(--error); padding: 5px 12px; border-radius: 5px; cursor: pointer; font-size: 0.8rem; }
+        .logout-btn { background: transparent; border: 1px solid var(--error); color: var(--error); padding: 5px 12px; border-radius: 5px; cursor: pointer; }
         
-        .hidden { display: none; }
-        #debug-log { font-size: 0.7rem; color: var(--error); margin-top: 15px; text-align: left; background: #fff0f0; padding: 5px; border-radius: 4px; display: none; }
+        /* Status Elements */
+        #debug-info { color: var(--error); font-size: 0.8rem; margin-top: 15px; display: none; background: #fff0f0; padding: 10px; border-radius: 5px; text-align: left; }
     </style>
 </head>
 <body>
@@ -46,15 +45,17 @@
     <div id="login-screen">
         <div class="login-box">
             <h1>🤝 Kindred</h1>
-            <p style="color: #7f8c8d; margin-bottom: 20px;">Bridge the gap to impact.</p>
+            <p style="color: #7f8c8d;">Login or Sign up to see challenges</p>
             
             <input type="email" id="email" placeholder="Email Address">
-            <input type="password" id="pass" placeholder="Password (min 6 chars)">
+            <input type="password" id="pass" placeholder="Password">
             
             <button class="btn" onclick="login()">Login</button>
             <button class="btn btn-secondary" onclick="signup()">Create New Account</button>
             
-            <div id="debug-log"></div>
+            <button id="force-enter" class="btn" style="display:none; background:#95a5a6;" onclick="hideLogin()">Continue to Dashboard</button>
+            
+            <div id="debug-info"></div>
         </div>
     </div>
 
@@ -64,15 +65,15 @@
             <button class="logout-btn" onclick="logout()">Logout</button>
         </header>
         
-        <p id="user-welcome">Verifying session...</p>
+        <p id="user-welcome">Initializing connection...</p>
 
         <div id="challenge-list">
-            <p style="text-align: center; color: #95a5a6; padding-top: 50px;">Looking for challenges...</p>
+            <p style="text-align: center; color: #95a5a6; padding-top: 50px;">Waiting for data...</p>
         </div>
     </div>
 
     <script>
-        // 1. FIREBASE CONFIGURATION
+        // FIREBASE CONFIG
         const firebaseConfig = {
             apiKey: "AIzaSyC0cOFSLJBYYXmb4HQa71lWfbrb9XkKoJw",
             authDomain: "kindred-code.firebaseapp.com",
@@ -82,122 +83,102 @@
             appId: "1:1056220357040:web:1b84ea983970f95e1f3675"
         };
 
-        // Initialize
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
 
-        // 2. AUTH FUNCTIONS
+        // AUTH FUNCTIONS
         async function login() {
             const email = document.getElementById('email').value;
             const pass = document.getElementById('pass').value;
-            showDebug(""); // Clear logs
             try {
                 await auth.signInWithEmailAndPassword(email, pass);
-            } catch (error) {
-                showDebug("Login Error: " + error.message);
-            }
+            } catch (e) { showErr(e.message); }
         }
 
         async function signup() {
             const email = document.getElementById('email').value;
             const pass = document.getElementById('pass').value;
-            showDebug(""); // Clear logs
             try {
                 await auth.createUserWithEmailAndPassword(email, pass);
-                alert("Account created successfully!");
-            } catch (error) {
-                showDebug("Signup Error: " + error.message);
-            }
+                alert("Account created!");
+            } catch (e) { showErr(e.message); }
         }
 
         function logout() {
             auth.signOut().then(() => window.location.reload());
         }
 
-        function showDebug(msg) {
-            const log = document.getElementById('debug-log');
-            if(msg) {
-                log.innerText = msg;
-                log.style.display = 'block';
-            } else {
-                log.style.display = 'none';
-            }
+        function hideLogin() {
+            document.getElementById('login-screen').style.display = 'none';
         }
 
-        // 3. OBSERVE AUTH STATE
+        function showErr(msg) {
+            const d = document.getElementById('debug-info');
+            d.style.display = 'block';
+            d.innerText = "Error: " + msg;
+        }
+
+        // AUTH STATE OBSERVER
         auth.onAuthStateChanged(user => {
-            const screen = document.getElementById('login-screen');
             if (user) {
-                screen.classList.add('hidden');
+                console.log("Logged in as:", user.email);
+                hideLogin();
                 document.getElementById('user-welcome').innerText = `Welcome, ${user.email}`;
                 loadChallenges();
             } else {
-                screen.classList.remove('hidden');
+                console.log("No user logged in.");
+                document.getElementById('login-screen').style.display = 'flex';
             }
         });
 
-        // 4. DATABASE FUNCTIONS
+        // DATA LOADING
         async function loadChallenges() {
             const list = document.getElementById('challenge-list');
             
-            // This listens for changes in your Firestore 'challenges' collection
             db.collection('challenges').onSnapshot((snapshot) => {
                 if (snapshot.empty) {
-                    list.innerHTML = `
-                        <div style="text-align:center; padding: 40px; color: #7f8c8d;">
-                            <p>No active challenges found.</p>
-                            <small>Go to Firestore -> Create collection 'challenges'</small>
-                        </div>`;
+                    list.innerHTML = `<p style="text-align:center; padding:40px;">No challenges found in your 'challenges' collection.</p>`;
                     return;
                 }
 
                 list.innerHTML = '';
                 snapshot.forEach(doc => {
                     const data = doc.data();
-                    const percent = (data.current / data.goal) * 100;
+                    const current = Number(data.current) || 0;
+                    const goal = Number(data.goal) || 1;
+                    const percent = (current / goal) * 100;
                     
                     list.innerHTML += `
                         <div class="card">
-                            <small style="color:var(--secondary); font-weight:bold;">${data.type || 'GENERAL'}</small>
+                            <small style="color:var(--secondary); font-weight:bold;">${data.type || 'CHALLENGE'}</small>
                             <h2 style="margin: 10px 0;">${data.title}</h2>
-                            <p>Sponsored by: <strong>${data.company}</strong></p>
-                            
+                            <p>By <strong>${data.company}</strong></p>
                             <div class="progress-bar">
                                 <div class="progress-fill" style="width: ${percent}%"></div>
                             </div>
-                            
                             <div style="display:flex; justify-content:space-between; font-size:0.85rem; color:#7f8c8d;">
-                                <span>${data.current} / ${data.goal} verified</span>
+                                <span>${current} / ${goal} verified</span>
                                 <span>Reward: ${data.reward}</span>
                             </div>
-
-                            <button class="btn" style="margin-top:20px; background:var(--dark);" onclick="verifyAction('${doc.id}', ${data.current})">
-                                Verify My Action
+                            <button class="btn" style="margin-top:20px; background:var(--dark);" onclick="verifyAction('${doc.id}', ${current})">
+                                Submit Verification
                             </button>
                         </div>
                     `;
                 });
-            }, (error) => {
-                console.error("Database Error:", error);
-                list.innerHTML = `<p style="color:red">Permission denied. Check Firestore Rules.</p>`;
+            }, (err) => {
+                console.error(err);
+                list.innerHTML = `<p style="color:red; text-align:center;">Firestore Error: Check your Database Rules.</p>`;
             });
         }
 
-        async function verifyAction(docId, currentVal) {
+        async function verifyAction(docId, val) {
             if ("geolocation" in navigator) {
-                navigator.geolocation.getCurrentPosition(async (position) => {
-                    try {
-                        await db.collection('challenges').doc(docId).update({
-                            current: currentVal + 1
-                        });
-                        alert("GPS Verified! Your contribution was recorded.");
-                    } catch (e) {
-                        alert("Database error: " + e.message);
-                    }
-                }, () => {
-                    alert("GPS access denied. Verification failed.");
-                });
+                navigator.geolocation.getCurrentPosition(async (pos) => {
+                    await db.collection('challenges').doc(docId).update({ current: val + 1 });
+                    alert("Location Verified!");
+                }, () => alert("GPS access denied."));
             }
         }
     </script>
